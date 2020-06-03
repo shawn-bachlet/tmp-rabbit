@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 import Lib
@@ -21,9 +23,9 @@ main = do
         newMsg {msgBody = (BL.pack "hello world"),
                 msgDeliveryMode = Just Persistent}
 
+    putStrLn "enter key press to close connection"
     getLine -- wait for keypress
     putStrLn "connection closed"
-  pure ()
 
 myCallback :: (Message,Envelope) -> IO ()
 myCallback (msg, env) = do
