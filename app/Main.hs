@@ -20,7 +20,7 @@ main = do
 
     -- publish a message to our new exchange
     publishMsg chan "myExchange" "myKey"
-        newMsg {msgBody = (BL.pack "hello world"),
+        newMsg {msgBody = BL.pack "hello world",
                 msgDeliveryMode = Just Persistent}
 
     putStrLn "enter key press to close connection"
@@ -29,7 +29,7 @@ main = do
 
 myCallback :: (Message,Envelope) -> IO ()
 myCallback (msg, env) = do
-    putStrLn $ "received message: " ++ (BL.unpack $ msgBody msg)
+    putStrLn $ "received message: " ++ BL.unpack (msgBody msg)
     -- acknowledge receiving the message
     ackEnv env
 

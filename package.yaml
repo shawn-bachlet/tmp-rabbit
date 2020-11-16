@@ -23,8 +23,13 @@ dependencies:
 - amqp
 - base >= 4.7 && < 5
 - bytestring
+- generic-monoid
+- mtl
+- port-utils
 - process
+- temporary
 - text
+- transformers
 - unix
 
 library:

@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f0d64c167a2991dd79d8e211cd56d6af8f950cac4f9efab67c58adaf6fc99da2
+-- hash: 9b0908c6f19d398c0049f52191ace0e9a738ee71b63163d3d18386ca534a8a85
 
 name:           tmp-rabbit
 version:        0.1.0.0
@@ -27,6 +27,9 @@ source-repository head
 
 library
   exposed-modules:
+      Internal
+      Internal.Config
+      Internal.Core
       Lib
   other-modules:
       Paths_tmp_rabbit
@@ -36,8 +39,13 @@ library
       amqp
     , base >=4.7 && <5
     , bytestring
+    , generic-monoid
+    , mtl
+    , port-utils
     , process
+    , temporary
     , text
+    , transformers
     , unix
   default-language: Haskell2010
 
@@ -52,9 +60,14 @@ executable tmp-rabbit-exe
       amqp
     , base >=4.7 && <5
     , bytestring
+    , generic-monoid
+    , mtl
+    , port-utils
     , process
+    , temporary
     , text
     , tmp-rabbit
+    , transformers
     , unix
   default-language: Haskell2010
 
@@ -70,8 +83,13 @@ test-suite tmp-rabbit-test
       amqp
     , base >=4.7 && <5
     , bytestring
+    , generic-monoid
+    , mtl
+    , port-utils
     , process
+    , temporary
     , text
     , tmp-rabbit
+    , transformers
     , unix
   default-language: Haskell2010
