@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 37a635ac4d438637aaa642e5c6e521f94344ce5f3c4f19fb5cde518aec105b45
+-- hash: 382b52e3c5b38b5b98d826a8dfcf96215303101f25d37506b33082c086ed8041
 
 name:           tmp-rabbit
 version:        0.1.0.0
@@ -30,7 +30,6 @@ library
       Internal
       Internal.Config
       Internal.Core
-      Lib
   other-modules:
       Paths_tmp_rabbit
   hs-source-dirs:

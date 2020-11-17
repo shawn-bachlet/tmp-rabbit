@@ -2,19 +2,22 @@
 
 module Main where
 
-import Lib
+import Internal
 
 import Network.AMQP
 
 import qualified Data.ByteString.Lazy.Char8 as BL
 
 main :: IO ()
-main = do 
-  with $ \chan -> do 
+main = do
+  -- TODO: this an example that shows a message being passed from a queue
+  -- in a single exchange. This could be a nice test. We want to
+  -- simply start rabbitMQ here.
+  with $ \chan -> do
     declareQueue chan newQueue {queueName = "myQueue"}
     declareExchange chan newExchange {exchangeName = "myExchange", exchangeType = "direct"}
     bindQueue chan "myQueue" "myExchange" "myKey"
-    
+
     -- subscribe to the queue
     consumeMsgs chan "myQueue" Ack myCallback
 

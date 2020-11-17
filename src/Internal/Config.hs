@@ -17,6 +17,7 @@ import Data.Maybe (fromMaybe)
 import Data.Monoid (Last, getLast)
 import Data.Monoid.Generic (GenericMonoid(..), GenericSemigroup(..))
 import Data.Text ()
+import Data.UUID (UUID)
 import Data.UUID.V4 (nextRandom)
 import GHC.Generics (Generic)
 import GHC.IO.Exception (ExitCode)
@@ -64,20 +65,26 @@ data Plan = Plan
 newtype ProcessConfig = ProcessConfig {rabbitEnv :: Maybe [(String, String)]}
 
 setupConfig :: Config -> IO Resources
-setupConfig config@Config {..} = evalContT $ do
-  envs      <- lift getEnvironment
-  openPort  <- lift $ maybe getFreePort pure $ join $ getLast rabbitPort
-  secondPort <- lift $ maybe getFreePort pure $ join $ getLast erlPort
-  anotherPort <- lift $ maybe getFreePort pure $ join $ getLast distPort
-  managementPort <- lift $ maybe getFreePort pure $ join $ getLast managementPort
-  tmpEnv    <- lift $ lookupEnv "TMP"
-  tmpDirEnv <- lift $ lookupEnv "TMPDIR"
+setupConfig config@Config {..} = do
+  envs            <- getEnvironment
+  tmpEnv          <- lookupEnv "TMP"
+  tmpDirEnv       <- lookupEnv "TMPDIR"
   let
     defaultTemp      = fromMaybe "/tmp" $ tmpEnv <|> tmpDirEnv
     resourcesTempDir = fromMaybe defaultTemp $ getLast temporaryDirectory
-    resourcesPlan = Plan resourcesTempDir openPort anotherPort secondPort managementPort 
+
+  resourcesPlan <- Plan resourcesTempDir
+      <$> getPort rabbitPort
+      <*> getPort erlPort
+      <*> getPort distPort
+      <*> getPort managementPort
+
   pure Resources {..}
 
+getPort :: Last (Maybe Int) -> IO Int
+getPort port = maybe getFreePort pure $ join $ getLast port
+
+-- TODO: actually implement this
 cleanupConfig :: Resources -> IO ()
 cleanupConfig = undefined
 
@@ -86,20 +93,12 @@ startPlan plan@Plan{..} = do
   systemEnv <- getEnvironment
   putStrLn $ "Starting on port " <> show rabbitPort
   putStrLn $ "rabbitmq tmp folder is: " <> show completePlanDataDirectory
-  randomNumber <- nextRandom
+  nodeName <- nextRandom
   hostName <- getHostName
-  (_, _, _, pluginHandle) <- createProcess (shell "rabbitmq-plugins disable rabbitmq_mqtt rabbitmq_stomp")
-  void $ waitForProcess pluginHandle 
+
+  disablePlugins
   handles <- createProcess (proc "rabbitmq-server" []){
-      env = Just $ ("RABBITMQ_LOGS", "-")
-                 : ("USE_LONGNAME", "true")
-                 -- : ("RABBITMQ_MNESIA_DIR", completePlanDataDirectory)
-                 : ("RABBITMQ_NODE_PORT", show rabbitPort)
-                 : ("RABBITMQ_DIST_PORT", show distPort)
-                 : ("RABBITMQ_NODENAME", show randomNumber <> "@" <> hostName)
-                 : ("RABBITMQ_SERVER_START_ARGS", "-rabbitmq_management listener [{port," <> show managementPort <> "}]")
-                 : ("ERL_EPMD_PORT", show erlPort)
-                 : systemEnv
+      env = buildEnvironment plan systemEnv nodeName hostName
     }
   chan <- waitForRabbit rabbitPort
   putStrLn "Started Rabbit..."
@@ -111,3 +110,21 @@ stopPlan (_, _, _, processHandle) = do
     OpenHandle p -> signalProcess sigINT p
     _             -> pure ()
   waitForProcess processHandle
+
+-- TODO: if we keep this, change the below comment to something better.
+-- | rabbitmq_mqtt and rabbitmq_stomp are disabled to poorly handle a port conflict.
+disablePlugins :: IO ()
+disablePlugins = do
+  (_, _, _, pluginHandle) <- createProcess (shell "rabbitmq-plugins disable rabbitmq_mqtt rabbitmq_stomp")
+  void $ waitForProcess pluginHandle
+
+buildEnvironment :: Plan -> [(String, String)] -> UUID -> String -> Maybe [(String, String)]
+buildEnvironment plan@Plan{..} systemEnv nodeName hostName =
+  Just $ ("RABBITMQ_LOGS", "-")
+       : ("USE_LONGNAME", "true")
+       : ("RABBITMQ_NODE_PORT", show rabbitPort)
+       : ("RABBITMQ_DIST_PORT", show distPort)
+       : ("RABBITMQ_NODENAME", show nodeName <> "@" <> hostName)
+       : ("RABBITMQ_SERVER_START_ARGS", "-rabbitmq_management listener [{port," <> show managementPort <> "}]")
+       : ("ERL_EPMD_PORT", show erlPort)
+       : systemEnv

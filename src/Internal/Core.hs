@@ -21,6 +21,7 @@ type Logger = Event -> IO ()
 
 waitForRabbit :: Int -> IO Channel
 waitForRabbit port = do
+    -- TODO: add configuration for username/password
   try (openConnection' "127.0.0.01" ((fromInteger . toInteger $ port) :: PortNumber) "/" "guest" "guest")
     >>= \case
       Left (_ :: AMQPException) -> threadDelay 50000 >> waitForRabbit port
