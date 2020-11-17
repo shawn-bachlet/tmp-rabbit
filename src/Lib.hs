@@ -25,14 +25,14 @@ import System.Posix.Types (ProcessID)
 import System.Process (CreateProcess(..), ProcessHandle, createProcess, proc, readProcessWithExitCode, waitForProcess)
 import System.Process.Internals (ProcessHandle__(OpenHandle), ProcessHandle, withProcessHandle)
 
-withConfig :: [String] -> (Channel -> IO a) -> IO a 
+withConfig :: [String] -> (Channel -> IO a) -> IO a
 withConfig config action = do
   putStrLn "Starting Rabbit ..."
 --  setupConfig config
-  bracket (startConfig $ Config (Last Nothing) (Last Nothing)) (stopPlan . snd) (action . fst)
+  bracket (startConfig $ Config (Last Nothing) (Last Nothing) (Last Nothing) (Last Nothing)) (stopPlan . snd) (action . fst)
 
-with :: (Channel -> IO a) -> IO a 
-with = withConfig [] 
+with :: (Channel -> IO a) -> IO a
+with = withConfig []
 
 ensureRabbitMQInstalled :: RabbitMQConfig -> IO ()
 ensureRabbitMQInstalled config = do

@@ -24,6 +24,7 @@ dependencies:
 - base >= 4.7 && < 5
 - bytestring
 - generic-monoid
+- hostname
 - mtl
 - port-utils
 - process
@@ -31,6 +32,7 @@ dependencies:
 - text
 - transformers
 - unix
+- uuid
 
 library:
   source-dirs: src

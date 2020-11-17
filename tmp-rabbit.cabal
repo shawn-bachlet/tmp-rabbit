@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9b0908c6f19d398c0049f52191ace0e9a738ee71b63163d3d18386ca534a8a85
+-- hash: cbd65d6ac879075c8fcaae52fefeb33195e769ce032f282557f182b138620eae
 
 name:           tmp-rabbit
 version:        0.1.0.0
@@ -40,6 +40,7 @@ library
     , base >=4.7 && <5
     , bytestring
     , generic-monoid
+    , hostname
     , mtl
     , port-utils
     , process
@@ -47,6 +48,7 @@ library
     , text
     , transformers
     , unix
+    , uuid
   default-language: Haskell2010
 
 executable tmp-rabbit-exe
@@ -61,6 +63,7 @@ executable tmp-rabbit-exe
     , base >=4.7 && <5
     , bytestring
     , generic-monoid
+    , hostname
     , mtl
     , port-utils
     , process
@@ -69,6 +72,7 @@ executable tmp-rabbit-exe
     , tmp-rabbit
     , transformers
     , unix
+    , uuid
   default-language: Haskell2010
 
 test-suite tmp-rabbit-test
@@ -84,6 +88,7 @@ test-suite tmp-rabbit-test
     , base >=4.7 && <5
     , bytestring
     , generic-monoid
+    , hostname
     , mtl
     , port-utils
     , process
@@ -92,4 +97,5 @@ test-suite tmp-rabbit-test
     , tmp-rabbit
     , transformers
     , unix
+    , uuid
   default-language: Haskell2010
