@@ -4,10 +4,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Internal.Core where
-
 import Control.Concurrent (threadDelay)
-import Control.Exception (bracket, try)
-import Control.Exception (Exception)
+import Control.Exception (Exception, bracket, try)
 import Network.AMQP (AMQPException, Channel, openChannel, openConnection')
 import Network.Socket (PortNumber)
 

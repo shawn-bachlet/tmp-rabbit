@@ -7,30 +7,32 @@
 
 module Internal.Config where
 
-import Control.Applicative ( Alternative((<|>)) )
-import Control.Monad.Trans ( MonadTrans(lift) )
-import Data.Maybe ( fromMaybe )
-import Data.Monoid ( getLast, Last )
-import Data.Monoid.Generic
-    ( GenericMonoid(..), GenericSemigroup(..) )
-import Data.UUID.V4 (nextRandom)
-import Internal.Core ( Logger, waitForRabbit )
+import Control.Applicative (Alternative((<|>)))
 import Control.Concurrent (threadDelay)
 import Control.Exception (bracket, try)
-import Control.Monad (unless, when, join)
+import Control.Monad (join, unless, void, when)
+import Control.Monad.Trans (MonadTrans(lift))
 import Control.Monad.Trans.Cont (evalContT)
+import Data.Maybe (fromMaybe)
+import Data.Monoid (Last, getLast)
+import Data.Monoid.Generic (GenericMonoid(..), GenericSemigroup(..))
 import Data.Text ()
+import Data.UUID.V4 (nextRandom)
 import GHC.Generics (Generic)
 import GHC.IO.Exception (ExitCode)
 import GHC.IO.Handle (Handle)
+import Internal.Core (Logger, waitForRabbit)
 import Network.AMQP (AMQPException, Channel, openChannel, openConnection)
 import Network.HostName (getHostName)
-import Network.Socket.Free ( getFreePort )
-import System.Environment ( getEnvironment, lookupEnv )
+import Network.Socket.Free (getFreePort)
+import System.Environment (getEnvironment, lookupEnv)
 import System.Exit (ExitCode(ExitSuccess))
 import System.Posix.Signals (sigINT, signalProcess)
 import System.Posix.Types (ProcessID)
-import System.Process ( StdStream( CreatePipe ), CreateProcess(..), ProcessHandle, createProcess, proc, readProcessWithExitCode, waitForProcess)
+import System.Process
+  ( CreateProcess(..), StdStream(CreatePipe), ProcessHandle, createProcess, proc
+  , readProcessWithExitCode, shell, waitForProcess
+  )
 import System.Process.Internals (ProcessHandle__(OpenHandle), ProcessHandle, withProcessHandle)
 
 
@@ -40,7 +42,6 @@ data Config = Config
   , distPort           :: Last (Maybe Int)
   , erlPort            :: Last (Maybe Int)
   , managementPort     :: Last (Maybe Int)
-  , mqttPort           :: Last (Maybe Int)
   , temporaryDirectory :: Last FilePath
   }
   deriving           stock (Generic)
@@ -58,7 +59,6 @@ data Plan = Plan
   , distPort                      :: Int
   , erlPort                       :: Int
   , managementPort                :: Int
-  , mqttPort                      :: Int
   }
 
 newtype ProcessConfig = ProcessConfig {rabbitEnv :: Maybe [(String, String)]}
@@ -70,13 +70,12 @@ setupConfig config@Config {..} = evalContT $ do
   secondPort <- lift $ maybe getFreePort pure $ join $ getLast erlPort
   anotherPort <- lift $ maybe getFreePort pure $ join $ getLast distPort
   managementPort <- lift $ maybe getFreePort pure $ join $ getLast managementPort
-  mqttPort <- lift $ maybe getFreePort pure $ join $ getLast mqttPort
   tmpEnv    <- lift $ lookupEnv "TMP"
   tmpDirEnv <- lift $ lookupEnv "TMPDIR"
   let
     defaultTemp      = fromMaybe "/tmp" $ tmpEnv <|> tmpDirEnv
     resourcesTempDir = fromMaybe defaultTemp $ getLast temporaryDirectory
-    resourcesPlan = Plan resourcesTempDir openPort anotherPort secondPort managementPort mqttPort
+    resourcesPlan = Plan resourcesTempDir openPort anotherPort secondPort managementPort 
   pure Resources {..}
 
 cleanupConfig :: Resources -> IO ()
@@ -89,13 +88,15 @@ startPlan plan@Plan{..} = do
   putStrLn $ "rabbitmq tmp folder is: " <> show completePlanDataDirectory
   randomNumber <- nextRandom
   hostName <- getHostName
+  (_, _, _, pluginHandle) <- createProcess (shell "rabbitmq-plugins disable rabbitmq_mqtt rabbitmq_stomp")
+  void $ waitForProcess pluginHandle 
   handles <- createProcess (proc "rabbitmq-server" []){
       env = Just $ ("RABBITMQ_LOGS", "-")
                  : ("USE_LONGNAME", "true")
                  -- : ("RABBITMQ_MNESIA_DIR", completePlanDataDirectory)
                  : ("RABBITMQ_NODE_PORT", show rabbitPort)
                  : ("RABBITMQ_DIST_PORT", show distPort)
-                 : ("RABBITMQ_NODENAME", (show randomNumber <> "@" <> hostName))
+                 : ("RABBITMQ_NODENAME", show randomNumber <> "@" <> hostName)
                  : ("RABBITMQ_SERVER_START_ARGS", "-rabbitmq_management listener [{port," <> show managementPort <> "}]")
                  : ("ERL_EPMD_PORT", show erlPort)
                  : systemEnv

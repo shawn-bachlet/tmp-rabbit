@@ -1,14 +1,11 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Internal where
-
-import Control.Exception (bracketOnError, bracket, try)
-import Control.Monad.Trans.Cont (evalContT, ContT(..))
-import Internal.Config (Plan(..), Config, Resources(..), setupConfig, cleanupConfig, startPlan, stopPlan)
-import Internal.Core (StartError)
+import Control.Exception (bracket, bracketOnError, try)
+import Control.Monad.Trans.Cont (ContT(..), evalContT)
 import GHC.IO.Handle (Handle)
-import System.Process.Internals (ProcessHandle__(OpenHandle), ProcessHandle, withProcessHandle)
+import Internal.Config (Plan(..), Resources(..), Config, cleanupConfig, setupConfig, startPlan, stopPlan)
+import Internal.Core (StartError)
 import Network.AMQP (AMQPException, Channel, openChannel, openConnection)
+import System.Process.Internals (ProcessHandle__(OpenHandle), ProcessHandle, withProcessHandle)
 
 startConfig :: Config
           -- ^ @extra@ configuration that is 'mappend'ed last to the generated `Config`.

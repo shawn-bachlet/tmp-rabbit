@@ -29,7 +29,7 @@ withConfig :: [String] -> (Channel -> IO a) -> IO a
 withConfig config action = do
   putStrLn "Starting Rabbit ..."
 --  setupConfig config
-  bracket (startConfig $ Config (Last Nothing) (Last Nothing) (Last Nothing) (Last Nothing) (Last Nothing) (Last Nothing)) (stopPlan . snd) (action . fst)
+  bracket (startConfig $ Config (Last Nothing) (Last Nothing) (Last Nothing) (Last Nothing) (Last Nothing)) (stopPlan . snd) (action . fst)
 
 with :: (Channel -> IO a) -> IO a
 with = withConfig []
