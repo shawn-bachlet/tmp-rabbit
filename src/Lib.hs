@@ -17,7 +17,7 @@ import GHC.Generics (Generic)
 import GHC.IO.Exception (ExitCode)
 import GHC.IO.Handle (Handle)
 import Internal (startConfig)
-import Internal.Config (Config(..), Plan(..), ProcessConfig(..), setupConfig, startPlan)
+import Internal.Config (Config(..), Plan(..), ProcessConfig(..), setupConfig, startPlan, stopPlan)
 import Network.AMQP (AMQPException, Channel, openChannel, openConnection)
 import System.Exit (ExitCode(ExitSuccess))
 import System.Posix.Signals (sigINT, signalProcess)
@@ -29,17 +29,10 @@ withConfig :: [String] -> (Channel -> IO a) -> IO a
 withConfig config action = do
   putStrLn "Starting Rabbit ..."
 --  setupConfig config
-  bracket (startConfig $ Config (Last Nothing) (Last Nothing)) (stopRabbit . snd) (action . fst)
+  bracket (startConfig $ Config (Last Nothing) (Last Nothing)) (stopPlan . snd) (action . fst)
 
 with :: (Channel -> IO a) -> IO a 
 with = withConfig [] 
-
-stopRabbit :: (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) -> IO ExitCode 
-stopRabbit (_, _, _, processHandle) = do
-  withProcessHandle processHandle $ \case 
-    OpenHandle p -> signalProcess sigINT p 
-    _             -> pure () 
-  waitForProcess processHandle
 
 ensureRabbitMQInstalled :: RabbitMQConfig -> IO ()
 ensureRabbitMQInstalled config = do
