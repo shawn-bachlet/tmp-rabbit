@@ -26,6 +26,7 @@ dependencies:
 - generic-monoid
 - hostname
 - mtl
+- network
 - port-utils
 - process
 - temporary

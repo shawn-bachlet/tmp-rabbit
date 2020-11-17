@@ -85,14 +85,15 @@ startPlan plan@Plan{..} = do
   hostName <- getHostName
   handles <- createProcess (proc "rabbitmq-server" []){
       env = Just $ ("RABBITMQ_LOGS", "-")
-                 : ("RABBITMQ_MNESIA_DIR", completePlanDataDirectory)
-                -- : ("RABBITMQ_NODE_PORT", show rabbitPort)
-                -- : ("RABBITMQ_DIST_PORT", show distPort)
-                 -- : ("RABBITMQ_NODENAME", ("rabbit" <> "@" <> hostName))
+                 : ("USE_LONGNAME", "true")
+                 -- : ("RABBITMQ_MNESIA_DIR", completePlanDataDirectory)
+                 : ("RABBITMQ_NODE_PORT", show rabbitPort)
+                 : ("RABBITMQ_DIST_PORT", show distPort)
+                 : ("RABBITMQ_NODENAME", (show randomNumber <> "@" <> hostName))
                  -- : ("ERL_EPMD_PORT", show erlPort)
                  : systemEnv
     }
-  chan <- waitForRabbit
+  chan <- waitForRabbit rabbitPort
   putStrLn "Started Rabbit..."
   pure (chan, handles)
 
