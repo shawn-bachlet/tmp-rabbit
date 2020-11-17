@@ -39,6 +39,8 @@ data Config = Config
   { rabbitPort         :: Last (Maybe Int)
   , distPort           :: Last (Maybe Int)
   , erlPort            :: Last (Maybe Int)
+  , managementPort     :: Last (Maybe Int)
+  , mqttPort           :: Last (Maybe Int)
   , temporaryDirectory :: Last FilePath
   }
   deriving           stock (Generic)
@@ -55,6 +57,8 @@ data Plan = Plan
   , rabbitPort                    :: Int
   , distPort                      :: Int
   , erlPort                       :: Int
+  , managementPort                :: Int
+  , mqttPort                      :: Int
   }
 
 newtype ProcessConfig = ProcessConfig {rabbitEnv :: Maybe [(String, String)]}
@@ -65,12 +69,14 @@ setupConfig config@Config {..} = evalContT $ do
   openPort  <- lift $ maybe getFreePort pure $ join $ getLast rabbitPort
   secondPort <- lift $ maybe getFreePort pure $ join $ getLast erlPort
   anotherPort <- lift $ maybe getFreePort pure $ join $ getLast distPort
+  managementPort <- lift $ maybe getFreePort pure $ join $ getLast managementPort
+  mqttPort <- lift $ maybe getFreePort pure $ join $ getLast mqttPort
   tmpEnv    <- lift $ lookupEnv "TMP"
   tmpDirEnv <- lift $ lookupEnv "TMPDIR"
   let
     defaultTemp      = fromMaybe "/tmp" $ tmpEnv <|> tmpDirEnv
     resourcesTempDir = fromMaybe defaultTemp $ getLast temporaryDirectory
-    resourcesPlan = Plan resourcesTempDir openPort anotherPort secondPort
+    resourcesPlan = Plan resourcesTempDir openPort anotherPort secondPort managementPort mqttPort
   pure Resources {..}
 
 cleanupConfig :: Resources -> IO ()
@@ -90,7 +96,8 @@ startPlan plan@Plan{..} = do
                  : ("RABBITMQ_NODE_PORT", show rabbitPort)
                  : ("RABBITMQ_DIST_PORT", show distPort)
                  : ("RABBITMQ_NODENAME", (show randomNumber <> "@" <> hostName))
-                 -- : ("ERL_EPMD_PORT", show erlPort)
+                 : ("RABBITMQ_SERVER_START_ARGS", "-rabbitmq_management listener [{port," <> show managementPort <> "}]")
+                 : ("ERL_EPMD_PORT", show erlPort)
                  : systemEnv
     }
   chan <- waitForRabbit rabbitPort
